@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Machinelearningcoursera by amitgil-github</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Machinelearningcoursera</h1>
+      <h2 class="project-tagline"></h2>
+      <a href="https://github.com/amitgil-github/MachineLearningCoursera" class="btn">View on GitHub</a>
+      <a href="https://github.com/amitgil-github/MachineLearningCoursera/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/amitgil-github/MachineLearningCoursera/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="practical-machine-learning---assignment-report" class="anchor" href="#practical-machine-learning---assignment-report" aria-hidden="true"><span class="octicon octicon-link"></span></a><strong>Practical Machine Learning - Assignment report</strong>
+</h1>
+
+<p>The assignment is asking us to predict the manner in which participant did an exercise - the "classe" variable in the training set</p>
+
+<p>I first read the testing and training data:</p>
+
+<blockquote>
+<p>training&lt;- read.csv("pml-training.csv", na.strings=c("NA"," ","#DIV/0!"))</p>
+
+<p>testing&lt;- read.csv("pml-testing.csv", na.strings=c("NA"," ","#DIV/0!"))</p>
+</blockquote>
+
+<p>From visual inspection of the training data I noticed that many of the input fields are actually NA, blank or equal to "#DIV/0!”, therefore I used these as NA while reading the files, and then removed the unused columns</p>
+
+<blockquote>
+<p>training&lt;-training[, colSums(is.na(training)) != nrow(training)]</p>
+</blockquote>
+
+<p>From inspecting the data I also noticed that rows with the parameter new_window = “yes” are rare and the data in them looks completely different, therefor I decided to remove these lines from the training data as well</p>
+
+<blockquote>
+<p>training&lt;-training[training$new_window =="no",] </p>
+</blockquote>
+
+<p>Some more inspection indicated that the first few columns are less relevant therefore I removed them as well</p>
+
+<blockquote>
+<p>training&lt;-subset( training, select = -c(X,user_name,raw_timestamp_part_1,raw_timestamp_part_2,cvtd_timestamp,new_window))</p>
+</blockquote>
+
+<p>I then created a training and testing subset in the data:</p>
+
+<blockquote>
+<p>inTrain &lt;- createDataPartition(y=training$classe,p=0.7, list=FALSE)</p>
+
+<p>traininggroup &lt;- training[inTrain,]</p>
+
+<p>testinggroup &lt;- training[-inTrain,]</p>
+</blockquote>
+
+<p>I then used the Caret package and its Train function, using Random Forest algorithm to predict the Classe parameter</p>
+
+<blockquote>
+<p>tr1&lt;-train(traininggroup$classe ~ ., data = traininggroup, method = "rf") </p>
+</blockquote>
+
+<p>The result were as follows:</p>
+
+<blockquote>
+<p>Random Forest </p>
+
+<p>13453 samples
+   54 predictor
+    5 classes: 'A', 'B', 'C', 'D', 'E' </p>
+
+<p>No pre-processing
+Resampling: Bootstrapped (25 reps) 
+Summary of sample sizes: 13453, 13453, 13453, 13453, 13453, 13453, ... 
+Resampling results across tuning parameters:</p>
+
+<p>mtry  Accuracy   Kappa      Accuracy SD  Kappa SD</p>
+
+<p>2    0.9911399  0.9887894  0.001793225  0.002270393</p>
+
+<p>28    0.9956940  0.9945522  0.001316920  0.001665525</p>
+
+<p>54    0.9919410  0.9898052  0.002631727  0.003324420</p>
+
+<p>Accuracy was used to select the optimal model using  the largest value.
+The final value used for the model was mtry = 28. </p>
+</blockquote>
+
+<p>I used the (internal) testing group to validate the model:</p>
+
+<blockquote>
+<p>confusionMatrix(testinggroup$classe, predict(tr1, testinggroup))</p>
+</blockquote>
+
+<p>Which resulted with the following accuracy of 0.9986:</p>
+
+<blockquote>
+<pre><code>           Accuracy : 0.9986          
+             95% CI : (0.9973, 0.9994)
+No Information Rate : 0.2847          
+P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+
+              Kappa : 0.9982          
+</code></pre>
+
+<p>Mcnemar's Test P-Value : NA              </p>
+</blockquote>
+
+<p>Finally I used the prediction model on the test cases</p>
+
+<blockquote>
+<p>predict(tr1, testing)</p>
+</blockquote>
+
+<p>And got the following results</p>
+
+<blockquote>
+<p>[1] B A B A A E D B A A B C B A E E A B B B
+Levels: A B C D E</p>
+</blockquote>
+
+<p>Further analyzing the result I was looking for the most relevant parameters in the model:</p>
+
+<blockquote>
+<p>varImp(tr1)</p>
+</blockquote>
+
+<p>Which had the following results:</p>
+
+<blockquote>
+<p>rf variable importance</p>
+
+<p>only 20 most important variables shown (out of 53)</p>
+
+<p>num_window           100.000</p>
+
+<p>roll_belt             60.683</p>
+
+<p>pitch_forearm         36.901</p>
+
+<p>yaw_belt              30.530</p>
+
+<p>magnet_dumbbell_z     29.093</p>
+
+<p>pitch_belt            28.035</p>
+
+<p>magnet_dumbbell_y     27.036</p>
+
+<p>roll_forearm          21.887</p>
+
+<p>accel_dumbbell_y      12.423</p>
+
+<p>roll_dumbbell         10.856</p>
+
+<p>magnet_dumbbell_x     10.511</p>
+
+<p>accel_forearm_x        9.847</p>
+
+<p>accel_belt_z           9.292</p>
+
+<p>total_accel_dumbbell   8.647</p>
+
+<p>accel_dumbbell_z       7.412</p>
+
+<p>magnet_belt_y          7.130</p>
+
+<p>magnet_belt_z          6.792</p>
+
+<p>magnet_forearm_z       6.601</p>
+
+<p>magnet_belt_x          5.686</p>
+
+<p>roll_arm               4.819</p>
+</blockquote>
+
+<p>I than draw the realtions between the most significant parameters:</p>
+
+<blockquote>
+<p>featurePlot(x=training[,c("num_window","roll_belt","yaw_belt","magnet_dumbbell_z")], y = training$classe,plot="pairs")</p>
+</blockquote>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/amitgil-github/MachineLearningCoursera">Machinelearningcoursera</a> is maintained by <a href="https://github.com/amitgil-github">amitgil-github</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
